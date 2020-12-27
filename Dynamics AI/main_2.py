@@ -64,8 +64,8 @@ def main():
 def mpc():
     opti = casadi.Opti()
     N = 4 #horizon length
-    wu = 0.1
-    wx = 1
+    wu = 0.1 #weight of control effort (u)
+    wx = 1 #weight of x's
     du_bounds = 0.5
     r = 5 #setpoint
     xi = 0
@@ -76,26 +76,21 @@ def mpc():
         xs.append(opti.variable())
         dus.append(opti.variable())
         #Actuator effort constraints
-        opti.subject_to(dus[-1] >= -0.5)
-        opti.subject_to(dus[-1] <= 0.5)
+        opti.subject_to(dus[-1] >= -du_bounds)
+        opti.subject_to(dus[-1] <= du_bounds)
         #Dynamics constraint. Nessesary to have a different first constraint since the first x isn't a decsision variable
+        #Dynamics are copied/pasted from the plant_dynamics_damaged_simple function since the casadi solver cannot have function calls in it
         if i == 0:
             opti.subject_to(xs[-1] - (1*xi+3*dus[-1]+casadi.tanh(xi*0.003)*10+dus[-1]*5*casadi.sin(xi*0.2)) == 0)
             dus.append(opti.variable())
-            opti.subject_to(dus[-1] >= -0.5)
-            opti.subject_to(dus[-1] <= 0.5)
+            opti.subject_to(dus[-1] >= -du_bounds)
+            opti.subject_to(dus[-1] <= du_bounds)
         else:
             opti.subject_to(xs[-1] - (1*xs[-2]+3*dus[-2]+casadi.tanh(xs[-2]*0.003)*10+dus[-2]*5*casadi.sin(xs[-2]*0.2)) == 0)
-
+    #Cost function for MPC taken from https://en.wikipedia.org/wiki/Model_predictive_control
     J = wx*(r-xi)**2+wu*dus[0]**2
     for i in range(1,N):
         J += wx*(r-xs[i-1])**2+wu*dus[i]**2
-    # qp = {'x':casadi.vertcat(xs[0],xs[1],xs[2],dus[0],dus[1],dus[2]), 'f':J, 'g':xs[0]-50}
-    # S = casadi.qpsol('S', 'qpoases', qp)
-    # print(S)
-    # r = S(lbg=0)
-    # x_opt = r['x']
-    # print('x_opt: ', x_opt)
 
     opti.minimize(J)
     opti.solver('ipopt')

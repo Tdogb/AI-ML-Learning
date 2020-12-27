@@ -62,24 +62,47 @@ def main():
     plt.show()
 
 def mpc():
-    N = 3 #horizon length
+    opti = casadi.Opti()
+    N = 4 #horizon length
     wu = 0.1
     wx = 1
+    du_bounds = 0.5
     r = 5 #setpoint
+    xi = 0
     xs = []
     dus = []
+
     for i in range(0,N):
-        xs.append(MX.sym("x"+str(i)))
-        dus.append(MX.sym("du"+str(i)))
-    J = 0
-    for i in range(0,N):
-        J += wx*(r-xs[i])**2+wu*dus[i]**2
-    qp = {'x':casadi.vertcat(xs[0],xs[1],xs[2],dus[0],dus[1],dus[2]), 'f':J, 'g':xs[0]-50}
-    S = casadi.qpsol('S', 'qpoases', qp)
-    print(S)
-    r = S(lbg=0)
-    x_opt = r['x']
-    print('x_opt: ', x_opt)
+        xs.append(opti.variable())
+        dus.append(opti.variable())
+        #Actuator effort constraints
+        opti.subject_to(dus[-1] >= -0.5)
+        opti.subject_to(dus[-1] <= 0.5)
+        #Dynamics constraint. Nessesary to have a different first constraint since the first x isn't a decsision variable
+        if i == 0:
+            opti.subject_to(xs[-1] - (1*xi+3*dus[-1]+casadi.tanh(xi*0.003)*10+dus[-1]*5*casadi.sin(xi*0.2)) == 0)
+            dus.append(opti.variable())
+            opti.subject_to(dus[-1] >= -0.5)
+            opti.subject_to(dus[-1] <= 0.5)
+        else:
+            opti.subject_to(xs[-1] - (1*xs[-2]+3*dus[-2]+casadi.tanh(xs[-2]*0.003)*10+dus[-2]*5*casadi.sin(xs[-2]*0.2)) == 0)
+
+    J = wx*(r-xi)**2+wu*dus[0]**2
+    for i in range(1,N):
+        J += wx*(r-xs[i-1])**2+wu*dus[i]**2
+    # qp = {'x':casadi.vertcat(xs[0],xs[1],xs[2],dus[0],dus[1],dus[2]), 'f':J, 'g':xs[0]-50}
+    # S = casadi.qpsol('S', 'qpoases', qp)
+    # print(S)
+    # r = S(lbg=0)
+    # x_opt = r['x']
+    # print('x_opt: ', x_opt)
+
+    opti.minimize(J)
+    opti.solver('ipopt')
+    sol = opti.solve()
+    print("xs " + str(xi) + " dus: " + str(sol.value(dus[0])))
+    for i in range(0, len(xs)):
+        print("xs " + str(sol.value(xs[i])) + " dus: " + str(sol.value(dus[i+1])))
 
 if __name__ == "__main__":
     mpc()

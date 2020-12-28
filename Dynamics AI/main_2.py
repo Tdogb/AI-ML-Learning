@@ -11,7 +11,7 @@ def plant_dynamics_simple(x,u):
 def plant_dynamics_damaged_simple(x,u):
     return 1*x+3*u+math.tanh(x*0.003)*10+u*5*math.sin(x*0.2)
 
-def main():
+def nn():
     tf.random.set_seed(42)
     samples = 1000
     #Input is u and x, train with u's and x's go to actual values
@@ -60,13 +60,13 @@ def main():
     plt.plot(tarray, prediction)
     plt.legend()
     plt.show()
-
+    
 def mpc():
     opti = casadi.Opti()
-    N = 4 #horizon length
+    N = 10 #horizon length
     wu = 0.1 #weight of control effort (u)
     wx = 1 #weight of x's
-    du_bounds = 0.5
+    du_bounds = 0.15
     r = 5 #setpoint
     xi = 0
     xs = []

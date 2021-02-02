@@ -5,7 +5,6 @@ from torch.autograd import Variable
 import numpy as np
 import matplotlib.pyplot as plt
 import math,random
-
 from torch.tensor import Tensor
 
 def f(x):
@@ -51,7 +50,7 @@ losses = train()
 # print ("testing start ... ")
 x_test = Variable(torch.from_numpy(np.array([testFeatures])).T).float()
 x_train = Variable(torch.from_numpy(np.array([testLabels])).T).float()
-
+print(testFeatures)
 for i in range(0,len(testLabels)):
     print(testLabels[i], "    ", model(x_test[i]).data.numpy())
 xs = []
@@ -63,8 +62,7 @@ for x in np.linspace(0,20,100):
 x_test2 = Variable(torch.from_numpy(np.array([xs])).T).float()
 yPred = model(x_test2).data.numpy()
 
-fig, axs = plt.subplots(2)
-axs[0].plot(range(1, 2000), losses)
+
 # axs[0].xlabel("epoch")
 # axs[0].ylabel("loss train")
 axs[1].plot(xs,yAct)
